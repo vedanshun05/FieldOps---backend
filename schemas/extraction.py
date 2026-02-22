@@ -74,6 +74,45 @@ class AgentResult(BaseModel):
     agent_trace: list[AgentTraceStep] = Field(default_factory=list)
 
 
+# --- 3-Schema Pipeline Schemas ---
+
+class AIExtractionSchema(BaseModel):
+    """Schema 1: Raw LLM extraction output (semantic, not DB-safe)."""
+    customer_name: str = ""
+    service_type: str = ""
+    materials_mentioned: list[dict] = Field(default_factory=list)
+    labor_mentioned: dict = Field(default_factory=lambda: {"duration_text": ""})
+    follow_up_mentioned: dict = Field(default_factory=lambda: {"is_required": False, "time_text": None, "reason_text": None})
+    job_status_text: str = "completed"
+    notes: str = ""
+    intents: list[str] = Field(default_factory=list)
+
+
+class ExecutionSchema(BaseModel):
+    """Schema 2: Deterministic validated input for backend tools (agent contract)."""
+    customer: dict = Field(default_factory=lambda: {"name": "", "phone": None})
+    job: dict = Field(default_factory=lambda: {"service_type": "", "status": "completed", "notes": ""})
+    labor: dict = Field(default_factory=lambda: {"hours": 0, "rate_per_hour": None})
+    materials: list[dict] = Field(default_factory=list)
+    follow_up: dict = Field(default_factory=lambda: {"required": False, "after_days": None, "reason": None})
+    invoice: dict = Field(default_factory=lambda: {"generate": True})
+    actions: list[str] = Field(default_factory=list)
+    meta: dict = Field(default_factory=dict)
+
+
+class ResponseSchema(BaseModel):
+    """Schema 3: Frontend/UI response — what changed, not how."""
+    transcript: str = ""
+    job_logged: bool = False
+    inventory_updated: bool = False
+    invoice_generated: bool = False
+    followup_scheduled: bool = False
+    revenue_added: float = 0.0
+    low_stock_items: list[str] = Field(default_factory=list)
+    next_followup_date: str | None = None
+    job_summary: dict = Field(default_factory=dict)
+
+
 # --- API Response Schemas ---
 
 class VoiceResponse(BaseModel):
@@ -83,6 +122,10 @@ class VoiceResponse(BaseModel):
     agent_result: AgentResult
     execution: ExecutionSummary
     agent_trace: list[AgentTraceStep] = Field(default_factory=list)
+    # 3-Schema Pipeline for demo display
+    ai_extraction: AIExtractionSchema = Field(default_factory=AIExtractionSchema)
+    execution_schema: ExecutionSchema = Field(default_factory=ExecutionSchema)
+    response_schema: ResponseSchema = Field(default_factory=ResponseSchema)
 
 class JobResponse(BaseModel):
     """Job data for API responses."""
